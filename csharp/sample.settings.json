@@ -1,0 +1,16 @@
+{
+    "IsEncrypted": false,
+    "Values": {
+      "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+      "FUNCTIONS_WORKER_RUNTIME": "python",
+      "DatabaseName": "{database-name}",
+      "ContainerName": "{container-name}",
+      "VectorProperty": "{vector-property-name}",
+      "HashProperty": "{hash-property-name}",
+      "CosmosDBConnection": "AccountEndpoint=https://{my-cosmos-account}.documents.azure.com:443/;AccountKey={my-cosmos-key};",
+      "OpenAiEndpoint": "https://{my-open-ai-account}.openai.azure.com/",
+      "OpenAiKey": "{my-open-ai-key}",
+      "OpenAiDeploymentName": "{my-embeddings-deployment-name}",
+      "OpenAiDimensions": "1536"
+    }
+  }
