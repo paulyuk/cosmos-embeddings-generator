@@ -4,8 +4,7 @@ import hashlib
 import json
 import azure.functions as func
 from openai import AzureOpenAI
-#from azure.cosmos.aio import CosmosClient
-#from azure.cosmos.exceptions import CosmosHttpResponseError
+
 
 # Retrieve application setings from local.settings.json
 OPENAI_ENDPOINT = os.environ["OpenAiEndpoint"]
@@ -13,16 +12,8 @@ OPENAI_KEY = os.environ["OpenAiKey"]
 OPENAI_MODEL = os.environ["OpenAiDeploymentName"]
 OPENAI_DIMENSIONS = int(os.environ["OpenAiDimensions"])
 COSMOS_DB_CONNECTION = os.environ["CosmosDBConnection"]
-#COSMOS_ENDPOINT = os.environ["CosmosDBEndpoint"]
-#COSMOS_KEY = os.environ["CosmosDBKey"]
-#COSMOS_DATABASE_NAME = os.environ["DatabaseName"]
-#COSMOS_CONTAINER_NAME = os.environ["ContainerName"]
 COSMOS_VECTOR_PROPERTY = os.environ["VectorProperty"]
 COSMOS_HASH_PROPERTY = os.environ["HashProperty"]
-
-# Initialize Cosmos DB client
-#COSMOS_CLIENT = CosmosClient(COSMOS_ENDPOINT, COSMOS_KEY)
-#COSMOS_CONTAINER = COSMOS_CLIENT.get_database_client(COSMOS_DATABASE_NAME).get_container_client(COSMOS_CONTAINER_NAME)
 
 # Initialize OpenAI client
 OPENAI_CLIENT = AzureOpenAI(
@@ -73,14 +64,8 @@ async def cosmos_embedding_generator(input: func.DocumentList, output: func.Out[
 
 
                 # Upsert the document back to Cosmos DB
-                #output.set(json.dumps(json_document))
                 output.set(func.Document.from_json(json.dumps(json_document)))
-                #try:
-                #    await COSMOS_CONTAINER.upsert_item(json_document)
-                #except CosmosHttpResponseError as e:
-                #    logging.error(f"Error upserting document: {str(e)}")
-
-    #return "Processed"
+                
 
 def get_embeddings(input_text: str) -> list:
     
