@@ -19,27 +19,29 @@ namespace CosmosEmbeddingGenerator
         private readonly int _dimensions;
         private readonly string _vectorProperty;
         private readonly string _hashProperty;
+        private readonly string _propertyToEmbed;
 
         public CosmosEmbeddingGeneratorFunction(ILoggerFactory loggerFactory, IConfiguration configuration)
         {
             _logger = loggerFactory.CreateLogger<CosmosEmbeddingGeneratorFunction>();
 
-            string openAiEndpoint = configuration["OpenAiEndpoint"]!;
-            string openAiKey = configuration["OpenAiKey"]!;
-            string deploymentName = configuration["OpenAiDeploymentName"]!;
-            string openAiDimensions = configuration["OpenAiDimensions"]!;
-            string vectorProperty = configuration["VectorProperty"]!;
-            string hashProperty = configuration["HashProperty"]!;
+            string openAiEndpoint = configuration["OpenAiEndpoint"] ?? throw new InvalidOperationException("'OpenAiEndpoint' must be defined.");
+            string openAiKey = configuration["OpenAiKey"] ?? throw new InvalidOperationException("'OpenAiKey' must be defined.");
+            string deploymentName = configuration["OpenAiDeploymentName"] ?? throw new InvalidOperationException("'OpenAiDeploymentName' must be defined.");
+            string openAiDimensions = configuration["OpenAiDimensions"] ?? throw new InvalidOperationException("'OpenAiDimensions' must be defined.");
+            string vectorProperty = configuration["VectorProperty"] ?? throw new InvalidOperationException("'VectorProperty' must be defined.");
+            string hashProperty = configuration["HashProperty"] ?? throw new InvalidOperationException("'HashProperty' must be defined.");
+            string propertyToEmbed = configuration["PropertyToEmbed"] ?? throw new InvalidOperationException("'PropertyToEmbed' must be defined.");
 
             _openAiClient = new AzureOpenAIClient(new Uri(openAiEndpoint), new AzureKeyCredential(openAiKey));
             _embeddingClient = _openAiClient.GetEmbeddingClient(deploymentName);
             _dimensions = int.Parse(openAiDimensions);
             _vectorProperty = vectorProperty;
             _hashProperty = hashProperty;
-
+            _propertyToEmbed = propertyToEmbed;
         }
 
-        [Function(nameof(CosmosEmbeddingGeneratorFunction)]
+        [Function(nameof(CosmosEmbeddingGeneratorFunction))]
         [CosmosDBOutput(
             databaseName: "%DatabaseName%",
             containerName: "%ContainerName%",
@@ -55,7 +57,7 @@ namespace CosmosEmbeddingGenerator
         {
             if (input != null && input.Count > 0)
             {
-                _logger.LogInformation("Documents modified: " + input.Count);
+                _logger.LogInformation("Documents modified: {count}", input.Count);
                 foreach (var document in input)
                 {
                     //parse document into a json object
@@ -72,7 +74,7 @@ namespace CosmosEmbeddingGenerator
                         string hash = ComputeJsonHash(jsonDocument);
 
                         // Generate embeddings on the document
-                        float[] embeddings = await GetEmbeddingsAsync(jsonDocument.ToString());
+                        float[] embeddings = await GetEmbeddingsAsync(jsonDocument.Property(_propertyToEmbed)?.ToString() ?? string.Empty);
 
                         // Add the embeddings to the document
                         jsonDocument[_vectorProperty] = JArray.FromObject(embeddings);
@@ -90,12 +92,12 @@ namespace CosmosEmbeddingGenerator
 
         private async Task<float[]> GetEmbeddingsAsync(string input)
         {
-            EmbeddingGenerationOptions options = new EmbeddingGenerationOptions
+            var options = new EmbeddingGenerationOptions
             {
                 Dimensions = _dimensions
             };
 
-            var response = await _embeddingClient.GenerateEmbeddingsAsync(new List<string> { input }, options);
+            var response = await _embeddingClient.GenerateEmbeddingsAsync([input], options);
 
             var embeddings = response.Value[0].ToFloats();
 
@@ -126,7 +128,7 @@ namespace CosmosEmbeddingGenerator
             // Save the existing hash
             string existingHash = jsonDocument[_hashProperty]!.ToString();
 
-            // Generate a hash of the document to compare to the existing hash (removes the existing hash when computed)
+            // Generate a hash of the property to be embedded.
             string newHash = ComputeJsonHash(jsonDocument);
 
             // Document has changed, process it
@@ -139,18 +141,12 @@ namespace CosmosEmbeddingGenerator
 
         private string ComputeJsonHash(JObject jsonDocument)
         {
-            if (jsonDocument[_hashProperty] != null)
-                jsonDocument.Remove(_hashProperty);
-
             // Re-serialize the JSON to canonical form (sorted keys, no extra whitespace)
-            var canonicalJson = JsonConvert.SerializeObject(jsonDocument, Formatting.None);
+            var property = jsonDocument.Property(_propertyToEmbed)?.ToString() ?? string.Empty;
 
             // Compute SHA256 hash
-            using (SHA256 sha256 = SHA256.Create())
-            {
-                byte[] hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(canonicalJson));
-                return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
-            }
+            byte[] hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(property));
+            return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
         }
     }
 }
