@@ -39,7 +39,7 @@ namespace CosmosEmbeddingGenerator
 
         }
 
-        [Function(nameof(CosmosEmbeddingGeneratorFunction)]
+        [Function(nameof(CosmosEmbeddingGeneratorFunction))]
         [CosmosDBOutput(
             databaseName: "%DatabaseName%",
             containerName: "%ContainerName%",
