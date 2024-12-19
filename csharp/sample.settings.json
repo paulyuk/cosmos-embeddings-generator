@@ -2,10 +2,11 @@
     "IsEncrypted": false,
     "Values": {
       "AzureWebJobsStorage": "UseDevelopmentStorage=true",
-      "FUNCTIONS_WORKER_RUNTIME": "python",
+      "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
       "DatabaseName": "{database-name}",
       "ContainerName": "{container-name}",
       "VectorProperty": "{vector-property-name}",
+      "PropertyToEmbed": "{property-to-generate-vectors-for}",
       "HashProperty": "{hash-property-name}",
       "CosmosDBConnection": "AccountEndpoint=https://{my-cosmos-account}.documents.azure.com:443/;AccountKey={my-cosmos-key};",
       "OpenAiEndpoint": "https://{my-open-ai-account}.openai.azure.com/",
