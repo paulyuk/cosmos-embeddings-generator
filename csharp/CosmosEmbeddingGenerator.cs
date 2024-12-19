@@ -9,10 +9,9 @@ using OpenAI.Embeddings;
 using System.Security.Cryptography;
 using System.Text;
 
-
-namespace cosmos_embedding_generator
+namespace CosmosEmbeddingGenerator
 {
-    public class cosmos_embedding_generator
+    public class CosmosEmbeddingGeneratorFunction
     {
         private readonly ILogger _logger;
         private readonly AzureOpenAIClient _openAiClient;
@@ -20,11 +19,10 @@ namespace cosmos_embedding_generator
         private readonly int _dimensions;
         private readonly string _vectorProperty;
         private readonly string _hashProperty;
-        
 
-        public cosmos_embedding_generator(ILoggerFactory loggerFactory, IConfiguration configuration)
+        public CosmosEmbeddingGeneratorFunction(ILoggerFactory loggerFactory, IConfiguration configuration)
         {
-            _logger = loggerFactory.CreateLogger<cosmos_embedding_generator>();
+            _logger = loggerFactory.CreateLogger<CosmosEmbeddingGeneratorFunction>();
 
             string openAiEndpoint = configuration["OpenAiEndpoint"]!;
             string openAiKey = configuration["OpenAiKey"]!;
@@ -41,8 +39,7 @@ namespace cosmos_embedding_generator
 
         }
 
-        [Function("cosmos_embedding_generator")]
-        
+        [Function(nameof(CosmosEmbeddingGeneratorFunction))]
         [CosmosDBOutput(
             databaseName: "%DatabaseName%",
             containerName: "%ContainerName%",
@@ -56,7 +53,6 @@ namespace cosmos_embedding_generator
                 CreateLeaseContainerIfNotExists = true)] IReadOnlyList<dynamic> input,
             FunctionContext context)
         {
-
             if (input != null && input.Count > 0)
             {
                 _logger.LogInformation("Documents modified: " + input.Count);
