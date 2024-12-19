@@ -3,7 +3,6 @@ using Azure.AI.OpenAI;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using OpenAI.Embeddings;
 using System.Security.Cryptography;
@@ -55,56 +54,70 @@ namespace CosmosEmbeddingGenerator
                 CreateLeaseContainerIfNotExists = true)] IReadOnlyList<dynamic> input,
             FunctionContext context)
         {
-            if (input != null && input.Count > 0)
+            var toBeUpdated = new List<(JObject doc, string hash, string toEmbed)>();
+            if (input?.Count > 0)
             {
                 _logger.LogInformation("Documents modified: {count}", input.Count);
-                foreach (var document in input)
+                for (int i = 0; i < input.Count; i++)
                 {
+                    var document = input[i];
                     //parse document into a json object
                     JObject jsonDocument = JObject.Parse(document.ToString());
-                    
-                    //Cleanse the document of system and vector properties
-                    jsonDocument = RemoveSystemAndVectorProperties(jsonDocument);
 
                     // Check hash value to see if document is new or modified
-                    if(IsDocumentNewOrModified(jsonDocument))
-                    { 
-                        
-                        // Generate a hash of the new/modified document
-                        string hash = ComputeJsonHash(jsonDocument);
-
-                        // Generate embeddings on the document
-                        float[] embeddings = await GetEmbeddingsAsync(jsonDocument.Property(_propertyToEmbed)?.ToString() ?? string.Empty);
-
-                        // Add the embeddings to the document
-                        jsonDocument[_vectorProperty] = JArray.FromObject(embeddings);
-
-                        // Add the hash to the document
-                        jsonDocument[_hashProperty] = hash;
-
-                        //Serialize and return the document
-                        return jsonDocument.ToString();
+                    if (IsDocumentNewOrModified(jsonDocument, out var newHash))
+                    {
+                        toBeUpdated.Add((jsonDocument, newHash, jsonDocument.Property(_propertyToEmbed)?.ToString() ?? string.Empty));
                     }
                 }
             }
+
+            if (toBeUpdated.Count > 0)
+            {
+                _logger.LogInformation("Updating embeddings for: {count}", toBeUpdated.Count);
+
+                // Generate all the embeddings in a single batch.
+                var embeddings = await GetEmbeddingsAsync(
+                    toBeUpdated.Select(tbu => tbu.toEmbed));
+
+                var outputDocuments = new List<string>(toBeUpdated.Count);
+                for (int i = 0; i < toBeUpdated.Count; i++)
+                {
+                    var (jsonDocument, hash, toEmbed) = toBeUpdated[i];
+
+                    //Cleanse the document of system and vector properties
+                    jsonDocument = RemoveSystemAndVectorProperties(jsonDocument);
+
+                    // Add the embeddings to the document
+                    jsonDocument[_vectorProperty] = JArray.FromObject(embeddings[i]);
+
+                    // Add the hash to the document
+                    jsonDocument[_hashProperty] = hash;
+
+                    // Serialize the result and add it to our output.
+                    outputDocuments.Add(jsonDocument.ToString());
+                }
+
+                return outputDocuments;
+            }
+
             return null;
         }
 
-        private async Task<float[]> GetEmbeddingsAsync(string input)
+        private async Task<List<float[]>> GetEmbeddingsAsync(IEnumerable<string> inputs)
         {
             var options = new EmbeddingGenerationOptions
             {
                 Dimensions = _dimensions
             };
 
-            var response = await _embeddingClient.GenerateEmbeddingsAsync([input], options);
-
-            var embeddings = response.Value[0].ToFloats();
-
-            // Convert ReadOnlyMemory<float> to float[]
-            float[] embedding = embeddings.ToArray();
-
-            return embedding;
+            var response = await _embeddingClient.GenerateEmbeddingsAsync(inputs, options);
+            var results = new List<float[]>(response.Value.Count);
+            foreach (var e in response.Value)
+            {
+                results.Add(e.ToFloats().ToArray());
+            }
+            return results;
         }
 
         private JObject RemoveSystemAndVectorProperties(JObject document)
@@ -119,20 +132,20 @@ namespace CosmosEmbeddingGenerator
             return document;
         }
 
-        private bool IsDocumentNewOrModified(JObject jsonDocument)
+        private bool IsDocumentNewOrModified(JObject jsonDocument, out string newHash)
         {
-            // No hash property, document is new
-            if (jsonDocument[_hashProperty] == null)
-                return true;
-
-            // Save the existing hash
-            string existingHash = jsonDocument[_hashProperty]!.ToString();
-
             // Generate a hash of the property to be embedded.
-            string newHash = ComputeJsonHash(jsonDocument);
+            newHash = ComputeJsonHash(jsonDocument);
+
+            var existingProperty = jsonDocument.Property(_hashProperty);
+            // No hash property, document is new
+            if (existingProperty is null)
+            {
+                return true;
+            }
 
             // Document has changed, process it
-            if (newHash != existingHash)
+            if (newHash != existingProperty.ToString())
                 return true;
 
             // Document has not changed, skip processing
