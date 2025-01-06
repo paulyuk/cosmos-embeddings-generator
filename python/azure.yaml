@@ -1,0 +1,8 @@
+name: cosmos-embeddings-generator
+metadata:
+  template: cosmos-embeddings-generator
+services:
+  api:
+    project: ./
+    language: python
+    host: function
