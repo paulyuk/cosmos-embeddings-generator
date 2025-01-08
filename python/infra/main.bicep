@@ -53,6 +53,7 @@ var deploymentStorageContainerName = 'app-package-container'
 var cosmosSettings = {
   database: 'embeddings-generator-db'
   container: 'customer'
+  outputcontainer: 'customer-embeddings'
   partitionKey: 'customerId'
   vectorProperty: 'vectors'
   hashProperty: 'hash'
@@ -125,6 +126,7 @@ module functions 'app/functions.bicep' = {
     appSettings: {
       COSMOS_DATABASE_NAME: cosmosSettings.database
       COSMOS_CONTAINER_NAME: cosmosSettings.container
+      COSMOS_OUTPUT_CONTAINER_NAME: cosmosSettings.outputcontainer
       COSMOS_VECTOR_PROPERTY: cosmosSettings.vectorProperty
       COSMOS_HASH_PROPERTY: cosmosSettings.hashProperty
       COSMOS_PROPERTY_TO_EMBED: cosmosSettings.PropertyToEmbed
@@ -146,7 +148,7 @@ module database 'app/database.bicep' = {
     location: location
     tags: tags
     databaseName: cosmosSettings.database
-    containerName: cosmosSettings.container
+    containerNames: [cosmosSettings.container, cosmosSettings.outputcontainer]
     partitionKeyName: cosmosSettings.partitionKey
     vectorPropertyName: cosmosSettings.vectorProperty
   }
