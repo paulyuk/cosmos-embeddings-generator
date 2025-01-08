@@ -43,10 +43,10 @@ module function '../core/host/functions/flexconsumption.bicep' = {
     appSettings: union(appSettings,
       {
         AzureWebJobsStorage__clientId : identityClientId
-        //APPLICATIONINSIGHTS_AUTHENTICATION_STRING: applicationInsightsIdentity
-        //AZURE_OPENAI_ENDPOINT: aiServiceUrl
+        APPLICATIONINSIGHTS_AUTHENTICATION_STRING: applicationInsightsIdentity
         AZURE_CLIENT_ID: identityClientId
       })
+    applicationInsightsName: applicationInsightsName
     appServicePlanId: appServicePlan.outputs.id
     runtimeName: runtimeName
     runtimeVersion: runtimeVersion

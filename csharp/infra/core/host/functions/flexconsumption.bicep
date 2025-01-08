@@ -33,6 +33,10 @@ resource stg 'Microsoft.Storage/storageAccounts@2022-09-01' existing = {
   name: storageAccountName
 }
 
+resource applicationInsights 'Microsoft.Insights/components@2020-02-02' existing = if (!empty(applicationInsightsName)) {
+  name: applicationInsightsName
+}
+
 resource functions 'Microsoft.Web/sites@2023-12-01' = {
   name: name
   location: location
@@ -76,6 +80,7 @@ resource functions 'Microsoft.Web/sites@2023-12-01' = {
         AzureWebJobsStorage__blobServiceUri: stg.properties.primaryEndpoints.blob
         AzureWebJobsStorage__credential : 'managedidentity'
         AzureWebJobsStorage__clientId : identityClientId
+        APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString
       })
   }
 }
