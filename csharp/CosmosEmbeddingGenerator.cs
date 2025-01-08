@@ -44,7 +44,7 @@ namespace CosmosEmbeddingGenerator
         [Function(nameof(CosmosEmbeddingGeneratorFunction))]
         [CosmosDBOutput(
             databaseName: "%COSMOS_DATABASE_NAME%",
-            containerName: "%COSMOS_CONTAINER_NAME%",
+            containerName: "%COSMOS_OUTPUT_CONTAINER_NAME%",
             Connection = "COSMOS_CONNECTION")]
         public async Task<object?> Run(
             [CosmosDBTrigger(
