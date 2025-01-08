@@ -35,6 +35,8 @@ param functionAppPlanName string = ''
 param openAiAccountName string = ''
 param cosmosDbAccountName string = ''
 param storageAccountName string = ''
+param logAnalyticsName string = ''
+param appInsightsName string = ''
 param userAssignedIdentityName string = ''
 
 
@@ -119,6 +121,7 @@ module functions 'app/functions.bicep' = {
     deploymentStorageContainerName: deploymentStorageContainerName
     identityId: identity.outputs.resourceId
     identityClientId: identity.outputs.clientId
+    applicationInsightsName: monitoring.outputs.applicationInsightsName
     appSettings: {
       COSMOS_DATABASE_NAME: cosmosSettings.database
       COSMOS_CONTAINER_NAME: cosmosSettings.container
@@ -149,6 +152,31 @@ module database 'app/database.bicep' = {
   }
 }
 
+// Monitor application with Azure Monitor
+module monitoring './core/monitor/monitoring.bicep' = {
+  name: 'monitoring'
+  scope: resourceGroup
+  params: {
+    location: location
+    tags: tags
+    logAnalyticsName: !empty(logAnalyticsName) ? logAnalyticsName : '${abbreviations.operationalInsightsWorkspaces}${resourceToken}'
+    applicationInsightsName: !empty(appInsightsName) ? appInsightsName : '${abbreviations.insightsComponents}${resourceToken}'
+  }
+}
+
+var monitoringRoleDefinitionId = '3913510d-42f4-4e42-8a64-420c390055eb' // Monitoring Metrics Publisher role ID
+
+// Allow access from api to application insights using a managed identity
+module appInsightsRoleAssignmentApi './core/monitor/appinsights-access.bicep' = {
+  name: 'appInsightsRoleAssignmentapi'
+  scope: resourceGroup
+  params: {
+    appInsightsName: monitoring.outputs.applicationInsightsName
+    roleDefinitionID: monitoringRoleDefinitionId
+    principalID: identity.outputs.principalId
+  }
+}
+
 module security 'app/security.bicep' = {
   name: 'security'
   scope: resourceGroup
@@ -169,3 +197,4 @@ output COSMOS_PROPERTY_TO_EMBED string = cosmosSettings.PropertyToEmbed
 output OPENAI_ENDPOINT string = ai.outputs.endpoint
 output OPENAI_DEPLOYMENT_NAME string = openAiSettings.embeddingDeploymentName
 output OPENAI_DIMENSIONS string = openAiSettings.dimensions
+output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
