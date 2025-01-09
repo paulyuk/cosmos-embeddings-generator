@@ -131,6 +131,8 @@ module functions 'app/functions.bicep' = {
       COSMOS_HASH_PROPERTY: cosmosSettings.hashProperty
       COSMOS_PROPERTY_TO_EMBED: cosmosSettings.PropertyToEmbed
       COSMOS_CONNECTION__accountEndpoint: database.outputs.endpoint
+      COSMOS_CONNECTION__credential: 'managedidentity'
+      COSMOS_CONNECTION__clientId: identity.outputs.clientId
       OPENAI_ENDPOINT: ai.outputs.endpoint
       OPENAI_KEY: ai.outputs.key
       OPENAI_DEPLOYMENT_NAME: openAiSettings.embeddingDeploymentName
