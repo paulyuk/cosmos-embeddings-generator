@@ -5,7 +5,7 @@ param tags object = {}
 
 param accountName string
 param databaseName string
-param containerName string
+param containerNames array
 param partitionKeyName string
 param vectorPropertyName string
 
@@ -18,8 +18,7 @@ var partitionKeyPath = '/${partitionKeyName}'
 var vectorPath = '/${vectorPropertyName}'
 var vectorExcludedIndexPath = '${vectorPath}/?'
 
-var containers = [
-  {
+var containers = [for containerName in containerNames:{
     name: containerName // Container for products
     partitionKeyPaths: [
       partitionKeyPath // Partition for product data
