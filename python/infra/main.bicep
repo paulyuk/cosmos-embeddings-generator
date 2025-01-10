@@ -53,7 +53,7 @@ var deploymentStorageContainerName = 'app-package-container'
 var cosmosSettings = {
   database: 'embeddings-generator-db'
   container: 'customer'
-  outputcontainer: 'customer-embeddings'
+  outputcontainer: 'customer'  // currently we output embeddings to the same container and same document/item
   partitionKey: 'customerId'
   vectorProperty: 'vectors'
   hashProperty: 'hash'
