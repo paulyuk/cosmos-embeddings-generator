@@ -16,21 +16,7 @@ This sample shows how to use a Cosmos DB Trigger and Output Binding in Azure Fun
 
 1. Open a terminal and navigate to where you would like to clone this solution
 
-1. Run the following command to download the solution locally to your machine:
-
-   ```bash
-   azd init -t AzureCosmosDB/cosmosdb-embeddings-generator
-   ```
-
-1. From the terminal, navigate to either the csharp or python directory in this solution.
-
-1. Then navigate to the /infra directory.
-
-1. Log in to AZD.
-
-   ```bash
-   azd auth login
-   ```
+1. From the terminal, navigate to either the `csharp` or `python` directory in this solution.
 
 1. Provision the Azure services, build your local solution container, and deploy the application.
 
@@ -46,22 +32,44 @@ OPENAI_ENDPOINT: "https://{my-open-ai-account}.openai.azure.com/"
 
 1. Copy the `sample.settings.json` file into a new file `local.settings.json` in the same folder (csharp or python).  
 
-1. Replace the placeholder values like `OPENAI_ENDPOINT` with values from the previous step.  By default the sample uses Entra identity (user identity and mananaged identity) so it is secretless.
+1. Replace the placeholder values like `OPENAI_ENDPOINT` with values from the previous step found in the `.azure` folder.  By default the sample uses Entra identity (user identity and mananaged identity) so it is secretless.
 
+Python:
 ```json
 {
   "IsEncrypted": false,
   "Values": {
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "FUNCTIONS_WORKER_RUNTIME": "python",
+    "COSMOS_CONNECTION__accountEndpoint": "https://{my-cosmos-account}.documents.azure.com:443/",
     "COSMOS_DATABASE_NAME": "{database-name}",
     "COSMOS_CONTAINER_NAME": "{container-name}",
+    "COSMOS_OUTPUT_CONTAINER_NAME": "{container-name}",  
     "COSMOS_VECTOR_PROPERTY": "{vector-property-name}",
     "COSMOS_HASH_PROPERTY": "{hash-property-name}",
     "COSMOS_PROPERTY_TO_EMBED": "{property-to-generate-vectors-for}",
-    "COSMOS_CONNECTION": "{my-cosmos-connection-string}",
     "OPENAI_ENDPOINT": "https://{my-open-ai-account}.openai.azure.com/",
-    "OPENAI_KEY": "{my-open-ai-key}",
+    "OPENAI_DEPLOYMENT_NAME": "{my-embeddings-deployment-name}",
+    "OPENAI_DIMENSIONS": "1536"
+  }
+}
+```
+
+C# (.NET):
+```json
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+    "COSMOS_CONNECTION__accountEndpoint": "https://{my-cosmos-account}.documents.azure.com:443/",
+    "COSMOS_DATABASE_NAME": "{database-name}",
+    "COSMOS_CONTAINER_NAME": "{container-name}",
+    "COSMOS_OUTPUT_CONTAINER_NAME": "{container-name}",  
+    "COSMOS_VECTOR_PROPERTY": "{vector-property-name}",
+    "COSMOS_HASH_PROPERTY": "{hash-property-name}",
+    "COSMOS_PROPERTY_TO_EMBED": "{property-to-generate-vectors-for}",
+    "OPENAI_ENDPOINT": "https://{my-open-ai-account}.openai.azure.com/",
     "OPENAI_DEPLOYMENT_NAME": "{my-embeddings-deployment-name}",
     "OPENAI_DIMENSIONS": "1536"
   }
@@ -70,4 +78,16 @@ OPENAI_ENDPOINT: "https://{my-open-ai-account}.openai.azure.com/"
 
 - F5
 - Open a browser and navigate to the container in Cosmos Data Explorer
-- Create a new document and save.
+- Create a new document and save.      """
+
+The expected document/item has at least these 3 properties, and note that 'text' 
+is the property that gets embedded.
+
+Example document:
+```json
+{
+   "id": "cosmosdb_overview_1",
+   "customerId": "1",
+   "text": "Azure Cosmos DB is a fully managed NoSQL, relational, and vector database. It offers single-digit millisecond response times, automatic and instant scalability, along with guaranteed speed at any scale. Business continuity is assured with SLA-backed availability and enterprise-grade security."
+}
+```

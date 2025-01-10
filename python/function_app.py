@@ -31,6 +31,7 @@ OPENAI_CLIENT = AzureOpenAI(
 # Initialize the function app
 app = func.FunctionApp()
 
+
 @app.function_name(name="cosmos-embedding-generator")
 @app.cosmos_db_output(
     arg_name="output", 
@@ -45,6 +46,20 @@ app = func.FunctionApp()
     lease_container_name="leases",
     create_lease_container_if_not_exists=True)
 async def cosmos_embedding_generator(input: func.DocumentList, output: func.Out[func.Document]):
+    """
+    This function listens for changes to new or existing CosmosDb documents/items,
+    and updates them in place with vector embeddings.
+
+    The expected document/item has at least these 3 properties, and note that 'text' 
+    is the property that gets embedded.
+
+    Example document:
+    {
+        "id": "cosmosdb_overview_1",
+        "customerId": "1",
+        "text": "Azure Cosmos DB is a fully managed NoSQL, relational, and vector database. It offers single-digit millisecond response times, automatic and instant scalability, along with guaranteed speed at any scale. Business continuity is assured with SLA-backed availability and enterprise-grade security."
+    }
+    """
 
     if input:
         logging.info('Documents modified: %s', len(input))

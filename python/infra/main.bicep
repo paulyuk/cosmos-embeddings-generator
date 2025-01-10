@@ -195,6 +195,7 @@ module security 'app/security.bicep' = {
 output COSMOS_CONNECTION__accountEndpoint string = database.outputs.endpoint
 output COSMOS_DATABASE_NAME string = cosmosSettings.database
 output COSMOS_CONTAINER_NAME string = cosmosSettings.container
+output COSMOS_OUTPUT_CONTAINER_NAME string = cosmosSettings.outputcontainer
 output COSMOS_VECTOR_PROPERTY string = cosmosSettings.vectorProperty
 output COSMOS_HASH_PROPERTY string = cosmosSettings.hashProperty
 output COSMOS_PROPERTY_TO_EMBED string = cosmosSettings.PropertyToEmbed
