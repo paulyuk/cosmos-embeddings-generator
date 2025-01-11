@@ -3,10 +3,10 @@ using Azure.Identity;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Linq;
 using OpenAI.Embeddings;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 
 namespace CosmosEmbeddingGenerator
 {
@@ -61,7 +61,7 @@ namespace CosmosEmbeddingGenerator
         [Function(nameof(CosmosEmbeddingGeneratorFunction))]
         [CosmosDBOutput(
             databaseName: "%COSMOS_DATABASE_NAME%",
-            containerName: "%COSMOS_OUTPUT_CONTAINER_NAME%",
+            containerName: "%COSMOS_CONTAINER_NAME%",
             Connection = "COSMOS_CONNECTION")]
         public async Task<object?> Run(
             [CosmosDBTrigger(
@@ -73,7 +73,7 @@ namespace CosmosEmbeddingGenerator
             FunctionContext context)
         {
             // List of documents to be returned to output binding
-            var toBeUpdated = new List<(JObject doc, string hash, string toEmbed)>();
+            var toBeUpdated = new List<(JsonDocument doc, string hash, string toEmbed)>();
 
             if (input?.Count > 0)
             {
@@ -83,12 +83,13 @@ namespace CosmosEmbeddingGenerator
                     var document = input[i];
 
                     // Parse document into a json object
-                    JObject jsonDocument = JObject.Parse(document.ToString());
+                    JsonDocument jsonDocument = JsonDocument.Parse(document.ToString());
 
                     // Check hash value to see if document is new or modified
                     if (IsDocumentNewOrModified(jsonDocument, out var newHash))
                     {
-                        toBeUpdated.Add((jsonDocument, newHash, jsonDocument.Property(_propertyToEmbed)?.ToString() ?? string.Empty));
+                        jsonDocument.RootElement.TryGetProperty(_propertyToEmbed, out JsonElement propertyElement);
+                        toBeUpdated.Add((jsonDocument, newHash, propertyElement.GetString() ?? string.Empty));
                     }
                 }
             }
@@ -100,51 +101,73 @@ namespace CosmosEmbeddingGenerator
 
                 // Generate embeddings on the specified document property or document
                 var embeddings = await GetEmbeddingsAsync(toBeUpdated.Select(tbu => tbu.toEmbed));
-                //var embeddings = await GetEmbeddingsAsync(toBeUpdated.Select(tbu => tbu.doc.ToString()));
 
-                var outputDocuments = new List<string>(toBeUpdated.Count);
-                
+                StringBuilder output = new StringBuilder().AppendLine("[");
                 for (int i = 0; i < toBeUpdated.Count; i++)
                 {
                     var (jsonDocument, hash, toEmbed) = toBeUpdated[i];
 
-                    // Add the hash to the document
-                    jsonDocument[_hashProperty] = hash;
+                    // Create a new JSON object with the updated properties
+                    using (var stream = new MemoryStream())
+                    {
+                        using (var writer = new Utf8JsonWriter(stream))
+                        {
+                            writer.WriteStartObject();
 
-                    // Add the embeddings to the document
-                    jsonDocument[_vectorProperty] = JArray.FromObject(embeddings[i]);
+                            foreach (JsonProperty property in jsonDocument.RootElement.EnumerateObject())
+                            {
+                                if (property.Name != _hashProperty && property.Name != _vectorProperty)
+                                {
+                                    property.WriteTo(writer);
+                                }
+                            }
 
-                    // Serialize the result and return it to the output binding
-                    outputDocuments.Add(jsonDocument.ToString());
+                            writer.WriteString(_hashProperty, hash);
+                            writer.WriteStartArray(_vectorProperty);
+                            foreach (var value in embeddings[i])
+                            {
+                                writer.WriteNumberValue(value);
+                            }
+                            writer.WriteEndArray();
+
+                            writer.WriteEndObject();
+                        }
+
+                        stream.Position = 0;
+                        var updatedJsonDocument = JsonDocument.Parse(stream);
+                        output.Append(updatedJsonDocument.RootElement.GetRawText());
+                        output.AppendLine(",");
+                    }
                 }
+                output.Length -= 1 + Environment.NewLine.Length;
+                output.AppendLine().AppendLine("]");
 
-                return outputDocuments;
+                return output.ToString();
             }
 
             return null;
         }
 
-        private bool IsDocumentNewOrModified(JObject jsonDocument, out string newHash)
+        private bool IsDocumentNewOrModified(JsonDocument jsonDocument, out string newHash)
         {
-
-            var existingProperty = jsonDocument.Property(_hashProperty);
-            // No hash property, document is new
-            if (existingProperty is null)
+            if (jsonDocument.RootElement.TryGetProperty(_hashProperty, out JsonElement existingProperty))
             {
-                // Generate a hash of the document.
+                // Generate a hash of the document/property
+                newHash = ComputeJsonHash(jsonDocument);
+
+                // Document has changed, process it
+                if (newHash != existingProperty.GetString())
+                    return true;
+
+                // Document has not changed, skip processing
+                return false;
+            }
+            else
+            {
+                // No hash property, document is new
                 newHash = ComputeJsonHash(jsonDocument);
                 return true;
             }
-
-            // Generate a hash of the document/property
-            newHash = ComputeJsonHash(jsonDocument);
-
-            // Document has changed, process it
-            if (newHash != existingProperty.ToString())
-                return true;
-
-            // Document has not changed, skip processing
-            return false;
         }
 
         private async Task<List<float[]>> GetEmbeddingsAsync(IEnumerable<string> inputs)
@@ -163,36 +186,53 @@ namespace CosmosEmbeddingGenerator
             return results;
         }
 
-        private string ComputeJsonHash(JObject jsonDocument)
+        private string ComputeJsonHash(JsonDocument jsonDocument)
         {
 
             // Cleanse the document of system, vector and hash properties
-            jsonDocument = CleanseDocumentProperties(jsonDocument);
+            jsonDocument = RemoveProperties(jsonDocument);
 
             // Compute a hash on entire document generating embeddings on entire document
             // Re-serialize the JSON to canonical form (sorted keys, no extra whitespace)
-            //var canonicalJson = JsonConvert.SerializeObject(jsonDocument, Formatting.None);
 
             // Generate a hash on the property to be embedded
-            var property = jsonDocument.Property(_propertyToEmbed)?.ToString() ?? string.Empty;
+            jsonDocument.RootElement.TryGetProperty(_propertyToEmbed, out JsonElement propertyElement);
+            var property = propertyElement.GetString() ?? string.Empty;
 
             // Compute SHA256 hash
-            //byte[] hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(canonicalJson));
             byte[] hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(property));
             return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
         }
 
-        private JObject CleanseDocumentProperties(JObject jsonDocument)
+        private JsonDocument RemoveProperties(JsonDocument jsonDocument)
         {
-            jsonDocument.Remove(_vectorProperty);
-            jsonDocument.Remove(_hashProperty);
-            jsonDocument.Remove("_rid");
-            jsonDocument.Remove("_self");
-            jsonDocument.Remove("_etag");
-            jsonDocument.Remove("_attachments");
-            jsonDocument.Remove("_lsn");
-            jsonDocument.Remove("_ts");
-            return jsonDocument;
+            using (var stream = new MemoryStream())
+            {
+                using (var writer = new Utf8JsonWriter(stream))
+                {
+                    writer.WriteStartObject();
+
+                    foreach (JsonProperty property in jsonDocument.RootElement.EnumerateObject())
+                    {
+                        if (property.Name != _vectorProperty &&
+                            property.Name != _hashProperty &&
+                            property.Name != "_rid" &&
+                            property.Name != "_self" &&
+                            property.Name != "_etag" &&
+                            property.Name != "_attachments" &&
+                            property.Name != "_lsn" &&
+                            property.Name != "_ts")
+                        {
+                            property.WriteTo(writer);
+                        }
+                    }
+
+                    writer.WriteEndObject();
+                }
+
+                stream.Position = 0;
+                return JsonDocument.Parse(stream);
+            }
         }
     }
 }
