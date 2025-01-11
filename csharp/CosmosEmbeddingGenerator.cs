@@ -102,8 +102,7 @@ namespace CosmosEmbeddingGenerator
                 var embeddings = await GetEmbeddingsAsync(toBeUpdated.Select(tbu => tbu.toEmbed));
                 //var embeddings = await GetEmbeddingsAsync(toBeUpdated.Select(tbu => tbu.doc.ToString()));
 
-                var outputDocuments = new List<string>(toBeUpdated.Count);
-                
+                StringBuilder output = new StringBuilder().AppendLine("[");
                 for (int i = 0; i < toBeUpdated.Count; i++)
                 {
                     var (jsonDocument, hash, toEmbed) = toBeUpdated[i];
@@ -115,23 +114,13 @@ namespace CosmosEmbeddingGenerator
                     jsonDocument[_vectorProperty] = JArray.FromObject(embeddings[i]);
 
                     // Serialize the result and return it to the output binding
-                    outputDocuments.Add(jsonDocument.ToString());
+                    output.Append(jsonDocument.ToString());
+                    output.AppendLine(",");
                 }
+                output.Length -= 1 + Environment.NewLine.Length;
+                output.AppendLine().AppendLine("]");
 
-                var jsonArrayStringResult = "[";
-
-                for (int i = 0; i < outputDocuments.Count; i++)
-                {
-                    jsonArrayStringResult += outputDocuments[i];
-                    if (i < outputDocuments.Count - 1)
-                    {
-                        jsonArrayStringResult += ",\n";
-                    }
-                    jsonArrayStringResult += "\n";
-                }
-
-                jsonArrayStringResult += "]";
-                return jsonArrayStringResult;
+                return output.ToString();
             }
 
             return null;
@@ -139,7 +128,6 @@ namespace CosmosEmbeddingGenerator
 
         private bool IsDocumentNewOrModified(JObject jsonDocument, out string newHash)
         {
-
             var existingProperty = jsonDocument.Property(_hashProperty);
             // No hash property, document is new
             if (existingProperty is null)
@@ -153,7 +141,7 @@ namespace CosmosEmbeddingGenerator
             newHash = ComputeJsonHash(jsonDocument);
 
             // Document has changed, process it
-            if (newHash != existingProperty.ToString())
+            if (newHash != existingProperty.Value.ToString())
                 return true;
 
             // Document has not changed, skip processing
