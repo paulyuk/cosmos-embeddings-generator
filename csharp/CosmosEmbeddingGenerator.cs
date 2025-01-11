@@ -61,7 +61,7 @@ namespace CosmosEmbeddingGenerator
         [Function(nameof(CosmosEmbeddingGeneratorFunction))]
         [CosmosDBOutput(
             databaseName: "%COSMOS_DATABASE_NAME%",
-            containerName: "%COSMOS_OUTPUT_CONTAINER_NAME%",
+            containerName: "%COSMOS_CONTAINER_NAME%",
             Connection = "COSMOS_CONNECTION")]
         public async Task<object?> Run(
             [CosmosDBTrigger(
@@ -118,7 +118,20 @@ namespace CosmosEmbeddingGenerator
                     outputDocuments.Add(jsonDocument.ToString());
                 }
 
-                return outputDocuments;
+                var jsonArrayStringResult = "[";
+
+                for (int i = 0; i < outputDocuments.Count; i++)
+                {
+                    jsonArrayStringResult += outputDocuments[i];
+                    if (i < outputDocuments.Count - 1)
+                    {
+                        jsonArrayStringResult += ",\n";
+                    }
+                    jsonArrayStringResult += "\n";
+                }
+
+                jsonArrayStringResult += "]";
+                return jsonArrayStringResult;
             }
 
             return null;
