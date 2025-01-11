@@ -101,7 +101,6 @@ namespace CosmosEmbeddingGenerator
 
                 // Generate embeddings on the specified document property or document
                 var embeddings = await GetEmbeddingsAsync(toBeUpdated.Select(tbu => tbu.toEmbed));
-                //var embeddings = await GetEmbeddingsAsync(toBeUpdated.Select(tbu => tbu.doc.ToString()));
 
                 StringBuilder output = new StringBuilder().AppendLine("[");
                 for (int i = 0; i < toBeUpdated.Count; i++)
@@ -195,14 +194,12 @@ namespace CosmosEmbeddingGenerator
 
             // Compute a hash on entire document generating embeddings on entire document
             // Re-serialize the JSON to canonical form (sorted keys, no extra whitespace)
-            //var canonicalJson = JsonConvert.SerializeObject(jsonDocument, Formatting.None);
 
             // Generate a hash on the property to be embedded
             jsonDocument.RootElement.TryGetProperty(_propertyToEmbed, out JsonElement propertyElement);
             var property = propertyElement.GetString() ?? string.Empty;
 
             // Compute SHA256 hash
-            //byte[] hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(canonicalJson));
             byte[] hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(property));
             return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
         }
