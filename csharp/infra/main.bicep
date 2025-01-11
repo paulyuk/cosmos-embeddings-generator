@@ -126,7 +126,6 @@ module functions 'app/functions.bicep' = {
     appSettings: {
       COSMOS_DATABASE_NAME: cosmosSettings.database
       COSMOS_CONTAINER_NAME: cosmosSettings.container
-      COSMOS_OUTPUT_CONTAINER_NAME: cosmosSettings.outputcontainer
       COSMOS_VECTOR_PROPERTY: cosmosSettings.vectorProperty
       COSMOS_HASH_PROPERTY: cosmosSettings.hashProperty
       COSMOS_PROPERTY_TO_EMBED: cosmosSettings.PropertyToEmbed
@@ -150,7 +149,7 @@ module database 'app/database.bicep' = {
     location: location
     tags: tags
     databaseName: cosmosSettings.database
-    containerNames: [cosmosSettings.container, cosmosSettings.outputcontainer]
+    containerNames: [cosmosSettings.container]
     partitionKeyName: cosmosSettings.partitionKey
     vectorPropertyName: cosmosSettings.vectorProperty
   }
@@ -195,7 +194,6 @@ module security 'app/security.bicep' = {
 output COSMOS_CONNECTION__accountEndpoint string = database.outputs.endpoint
 output COSMOS_DATABASE_NAME string = cosmosSettings.database
 output COSMOS_CONTAINER_NAME string = cosmosSettings.container
-output COSMOS_OUTPUT_CONTAINER_NAME string = cosmosSettings.outputcontainer
 output COSMOS_VECTOR_PROPERTY string = cosmosSettings.vectorProperty
 output COSMOS_HASH_PROPERTY string = cosmosSettings.hashProperty
 output COSMOS_PROPERTY_TO_EMBED string = cosmosSettings.PropertyToEmbed
