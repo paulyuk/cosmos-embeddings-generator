@@ -1,6 +1,6 @@
 $ErrorActionPreference = "Stop"
 
-if (-not (Test-Path ".\app\local.settings.json")) {
+if (-not (Test-Path ".\local.settings.json")) {
 
     $output = azd env get-values
 
@@ -40,5 +40,5 @@ if (-not (Test-Path ".\app\local.settings.json")) {
             "OPENAI_DIMENSIONS" = "$OPENAI_DIMENSIONS";
             "OPENAI_ENDPOINT" = "$OPENAI_ENDPOINT";
         }
-    } | ConvertTo-Json | Out-File -FilePath ".\app\local.settings.json" -Encoding ascii
+    } | ConvertTo-Json | Out-File -FilePath ".\local.settings.json" -Encoding ascii
 }
