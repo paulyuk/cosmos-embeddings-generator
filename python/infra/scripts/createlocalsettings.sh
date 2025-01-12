@@ -31,7 +31,7 @@ if [ ! -f "./local.settings.json" ]; then
     "IsEncrypted": "false",
     "Values": {
         "AzureWebJobsStorage": "UseDevelopmentStorage=true",
-        "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+        "FUNCTIONS_WORKER_RUNTIME": "python",
             "COSMOS_CONNECTION__accountEndpoint" = "$COSMOS_CONNECTION__accountEndpoint";
             "COSMOS_CONTAINER_NAME" = "$COSMOS_CONTAINER_NAME";
             "COSMOS_DATABASE_NAME" = "$COSMOS_DATABASE_NAME";
