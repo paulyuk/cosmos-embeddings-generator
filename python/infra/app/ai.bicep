@@ -45,7 +45,6 @@ module openAiModelDeployments '../core/ai/cognitive-services/deployment.bicep' =
 
 output name string = openAiAccount.outputs.name
 output endpoint string = openAiAccount.outputs.endpoint
-output key string = openAiAccount.outputs.key
 output deployments array = [
   for (_, index) in deployments: {
     name: openAiModelDeployments[index].outputs.name

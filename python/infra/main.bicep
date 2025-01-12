@@ -133,7 +133,6 @@ module functions 'app/functions.bicep' = {
       COSMOS_CONNECTION__credential: 'managedidentity'
       COSMOS_CONNECTION__clientId: identity.outputs.clientId
       OPENAI_ENDPOINT: ai.outputs.endpoint
-      OPENAI_KEY: ai.outputs.key
       OPENAI_DEPLOYMENT_NAME: openAiSettings.embeddingDeploymentName
       OPENAI_DIMENSIONS: openAiSettings.dimensions
     }
