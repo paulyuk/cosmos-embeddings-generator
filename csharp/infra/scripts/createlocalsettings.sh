@@ -21,26 +21,29 @@ if [ ! -f "./local.settings.json" ]; then
     while IFS= read -r line; do
         for key in "${expected_keys[@]}"; do
             if [[ $line == $key=* ]]; then
-                export "$key"="${line#*=}"
+                value="${line#*=}"
+                value="${value%\"}"  # Remove trailing quote if present
+                value="${value#\"}"  # Remove leading quote if present
+                export "$key"="$value"
             fi
         done
-    done <<< "$output
+    done <<< "$output"
 
     cat <<EOF > ./local.settings.json
 {
-    "IsEncrypted": "false",
+    "IsEncrypted": false,
     "Values": {
         "AzureWebJobsStorage": "UseDevelopmentStorage=true",
         "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
-            "COSMOS_CONNECTION__accountEndpoint" = "$COSMOS_CONNECTION__accountEndpoint";
-            "COSMOS_CONTAINER_NAME" = "$COSMOS_CONTAINER_NAME";
-            "COSMOS_DATABASE_NAME" = "$COSMOS_DATABASE_NAME";
-            "COSMOS_HASH_PROPERTY" = "$COSMOS_HASH_PROPERTY";
-            "COSMOS_PROPERTY_TO_EMBED" = "$COSMOS_PROPERTY_TO_EMBED";
-            "COSMOS_VECTOR_PROPERTY" = "$COSMOS_VECTOR_PROPERTY";
-            "OPENAI_DEPLOYMENT_NAME" = "$OPENAI_DEPLOYMENT_NAME";
-            "OPENAI_DIMENSIONS" = "$OPENAI_DIMENSIONS";
-            "OPENAI_ENDPOINT" = "$OPENAI_ENDPOINT";
+        "COSMOS_CONNECTION__accountEndpoint": "$COSMOS_CONNECTION__accountEndpoint",
+        "COSMOS_CONTAINER_NAME": "$COSMOS_CONTAINER_NAME",
+        "COSMOS_DATABASE_NAME": "$COSMOS_DATABASE_NAME",
+        "COSMOS_HASH_PROPERTY": "$COSMOS_HASH_PROPERTY",
+        "COSMOS_PROPERTY_TO_EMBED": "$COSMOS_PROPERTY_TO_EMBED",
+        "COSMOS_VECTOR_PROPERTY": "$COSMOS_VECTOR_PROPERTY",
+        "OPENAI_DEPLOYMENT_NAME": "$OPENAI_DEPLOYMENT_NAME",
+        "OPENAI_DIMENSIONS": "$OPENAI_DIMENSIONS",
+        "OPENAI_ENDPOINT": "$OPENAI_ENDPOINT"
     }
 }
 EOF
